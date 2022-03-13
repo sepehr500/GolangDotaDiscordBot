@@ -12,6 +12,8 @@ import (
 
 const API_URL = "https://api.steampowered.com/"
 
+var matchCache map[int]*MatchDetailsResult = make(map[int]*MatchDetailsResult)
+
 func New(token string) *Client {
 	return &Client{
 		Token: token,
@@ -40,6 +42,9 @@ func (c *Client) GetMatchHistory(params *MatchHistoryParams) (*MatchHistoryResul
 }
 
 func (c *Client) GetMatchDetails(params *MatchDetailsParams) (*MatchDetailsResult, error) {
+	if matchCache[params.MatchID] != nil {
+		return matchCache[params.MatchID], nil
+	}
 	resp, getErr := http.Get(c.buildURL("GetMatchDetails", params))
 	if getErr != nil {
 		log.Fatal(getErr)
@@ -51,5 +56,6 @@ func (c *Client) GetMatchDetails(params *MatchDetailsParams) (*MatchDetailsResul
 	if err != nil {
 		println(err.Error())
 	}
+	matchCache[params.MatchID] = matchDetails
 	return matchDetails, err
 }

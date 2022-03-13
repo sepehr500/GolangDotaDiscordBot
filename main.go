@@ -13,6 +13,7 @@ import (
 	dotago "github.com/sepehr500/dota-go/dota"
 )
 
+// Convert to map?
 var playerArray = []dotago.PlayerData{
 	{
 		ID:   83516914,
@@ -154,10 +155,4 @@ func main() {
 	var key = os.Getenv("DOTA_KEY")
 	client := dotago.New(key)
 	getAllPlayerStatsForWeek(client)
-	// params := &dotago.MatchHistoryParams{AccountID: "41051979"}
-	// result, _ := client.GetMatchHistory(params)
-	// for i, s := range result.Result.Matches {
-	// 	fmt.Println(i, time.Unix(int64(s.StartTime), 0))
-	// }
-	// debugPrint(result)
 }
