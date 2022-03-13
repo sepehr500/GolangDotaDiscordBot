@@ -5,11 +5,36 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
 	dotago "github.com/sepehr500/dota-go/dota"
 )
+
+var playerArray = []dotago.PlayerData{
+	{
+		ID:   83516914,
+		Name: "XANNY",
+	},
+	{
+		ID:   106795090,
+		Name: "zanerang",
+	},
+	{
+		ID:   253318253,
+		Name: "phil",
+	},
+	{
+		ID:   41051979,
+		Name: "DependencyInjection",
+	},
+	{
+		ID:   41121344,
+		Name: "Shyan",
+	},
+}
 
 var heroData dotago.HeroData
 
@@ -40,7 +65,7 @@ func getMatchData(matchData *dotago.MatchDetailsResult, accountId int) GetMatchD
 	}
 	isRadiantWin := matchData.Result.RadiantWin
 	isPlayerRadiant := currentPlayer.PlayerSlot < 128
-	cleanHeroName := heroData[fmt.Sprint(currentPlayer.HeroID)].Name
+	cleanHeroName := strings.Title(strings.Split(heroData[fmt.Sprint(currentPlayer.HeroID)].Name, "npc_dota_hero_")[1])
 	return GetMatchData{
 		CleanHeroName:   cleanHeroName,
 		IsRadiantWin:    isRadiantWin,
@@ -57,6 +82,7 @@ type GameSummaryResult struct {
 	TotalLosses int
 	TotalGames  int
 	WinRate     int
+	AccountID   int
 }
 
 func getWeekGameSummery(accountId int, client *dotago.Client) GameSummaryResult {
@@ -81,12 +107,39 @@ func getWeekGameSummery(accountId int, client *dotago.Client) GameSummaryResult 
 		}
 	}
 	winRate := int((float64(totalWins) / float64(totalGames)) * 100)
+	if totalGames == 0 {
+		winRate = 0
+	}
 	return GameSummaryResult{
 		TotalWins:   totalWins,
 		TotalLosses: totalLosses,
 		TotalGames:  totalGames,
 		WinRate:     winRate,
+		AccountID:   accountId,
 	}
+}
+
+func getAllPlayerStatsForWeek(client *dotago.Client) {
+	summaries := []GameSummaryResult{}
+	for _, player := range playerArray {
+		summaries = append(summaries, getWeekGameSummery(player.ID, client))
+	}
+	sort.Slice(summaries, func(i, j int) bool {
+		return summaries[i].WinRate > summaries[j].WinRate
+	})
+	message := "Weekly Game Summary\n\n"
+	for i, summary := range summaries {
+		name := ""
+		for _, player := range playerArray {
+			if player.ID == summary.AccountID {
+				name = player.Name
+				break
+			}
+		}
+		message = message + fmt.Sprintf("%d. %s (%d games) - %d%%\n", i+1, name, summary.TotalGames, summary.WinRate)
+
+	}
+	println(message)
 }
 
 func main() {
@@ -100,8 +153,7 @@ func main() {
 
 	var key = os.Getenv("DOTA_KEY")
 	client := dotago.New(key)
-	result := getWeekGameSummery(41051979, client)
-	debugPrint(result)
+	getAllPlayerStatsForWeek(client)
 	// params := &dotago.MatchHistoryParams{AccountID: "41051979"}
 	// result, _ := client.GetMatchHistory(params)
 	// for i, s := range result.Result.Matches {

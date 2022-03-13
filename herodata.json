@@ -119,5 +119,7 @@
   "126": { "name": "npc_dota_hero_void_spirit" },
   "128": { "name": "npc_dota_hero_snapfire" },
   "129": { "name": "npc_dota_hero_mars" },
-  "135": { "name": "npc_dota_hero_dawnbreaker" }
+  "135": { "name": "npc_dota_hero_dawnbreaker" },
+  "136": { "name": "npc_dota_hero_marci" },
+  "137": { "name": "npc_dota_hero_Primal_Beast" }
 }
