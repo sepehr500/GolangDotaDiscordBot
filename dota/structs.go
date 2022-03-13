@@ -121,3 +121,7 @@ type MatchDetailsResult struct {
 		} `json:"picks_bans"`
 	} `json:"result"`
 }
+
+type HeroData map[string]struct {
+	Name string
+}

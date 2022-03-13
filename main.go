@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -9,12 +11,14 @@ import (
 	dotago "github.com/sepehr500/dota-go/dota"
 )
 
+var heroData dotago.HeroData
+
 func debugPrint(str interface{}) {
 	fmt.Printf("%+v\n", str)
 }
 
 type GetMatchData struct {
-	CleanHeroName   int
+	CleanHeroName   string
 	IsRadiantWin    bool
 	IsPlayerRadiant bool
 	Kills           int
@@ -36,7 +40,7 @@ func getMatchData(matchData *dotago.MatchDetailsResult, accountId int) GetMatchD
 	}
 	isRadiantWin := matchData.Result.RadiantWin
 	isPlayerRadiant := currentPlayer.PlayerSlot < 128
-	cleanHeroName := currentPlayer.HeroID
+	cleanHeroName := heroData[fmt.Sprint(currentPlayer.HeroID)].Name
 	return GetMatchData{
 		CleanHeroName:   cleanHeroName,
 		IsRadiantWin:    isRadiantWin,
@@ -88,6 +92,11 @@ func getWeekGameSummery(accountId int, client *dotago.Client) GameSummaryResult 
 func main() {
 	println("RUNNING")
 	godotenv.Load()
+
+	jsonFile, _ := os.Open("herodata.json")
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	json.Unmarshal(byteValue, &heroData)
+	defer jsonFile.Close()
 
 	var key = os.Getenv("DOTA_KEY")
 	client := dotago.New(key)
