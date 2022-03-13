@@ -13,6 +13,17 @@ import (
 	dotago "github.com/sepehr500/dota-go/dota"
 )
 
+var EmojiDictionary = map[string]string{
+	"WIN":      "✅",
+	"LOSS":     "❌",
+	"TERRIBLE": "🤮",
+	"BAD":      "🤕",
+	"ALERT":    "🚨",
+}
+
+// tracks the most recent game time for each player
+var latestGameTimeMap = map[int]time.Time{}
+
 // Convert to map?
 var playerArray = []dotago.PlayerData{
 	{
@@ -44,6 +55,7 @@ func debugPrint(str interface{}) {
 }
 
 type GetMatchData struct {
+	AccountID       int
 	CleanHeroName   string
 	IsRadiantWin    bool
 	IsPlayerRadiant bool
@@ -51,6 +63,7 @@ type GetMatchData struct {
 	Deaths          int
 	Assists         int
 	EndTime         int
+	IsWinner        bool
 }
 
 func getMatchData(matchData *dotago.MatchDetailsResult, accountId int) GetMatchData {
@@ -75,6 +88,8 @@ func getMatchData(matchData *dotago.MatchDetailsResult, accountId int) GetMatchD
 		Deaths:          currentPlayer.Deaths,
 		Assists:         currentPlayer.Assists,
 		EndTime:         endTime,
+		IsWinner:        isPlayerRadiant == isRadiantWin,
+		AccountID:       accountId,
 	}
 }
 
@@ -143,6 +158,55 @@ func getAllPlayerStatsForWeek(client *dotago.Client) {
 	println(message)
 }
 
+func getMostRecentGame(accountId int, client *dotago.Client) GetMatchData {
+	matchHistory, _ := client.GetMatchHistory(&dotago.MatchHistoryParams{AccountID: accountId})
+	match := matchHistory.Result.Matches[0]
+	matchData, _ := client.GetMatchDetails(&dotago.MatchDetailsParams{MatchID: match.MatchID})
+	matchSummary := getMatchData(matchData, accountId)
+	return matchSummary
+}
+
+func parsedMostRecentGame(matchData GetMatchData) string {
+	feedMessage := ""
+	wonEmoji := ""
+	wonString := ""
+	userName := ""
+	for _, player := range playerArray {
+		if player.ID == matchData.AccountID {
+			userName = player.Name
+			break
+		}
+	}
+	if !matchData.IsWinner && matchData.Deaths > matchData.Kills+2 {
+		feedMessage = EmojiDictionary["ALERT"] + " FEED ALERT " + EmojiDictionary["ALERT"]
+	}
+	if matchData.IsWinner {
+		wonEmoji = EmojiDictionary["WIN"]
+		wonString = "won"
+	}
+	if !matchData.IsWinner {
+		wonEmoji = EmojiDictionary["LOSS"]
+		wonString = "lost"
+	}
+	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists.", feedMessage, wonEmoji, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists)
+}
+
+func pollForMostRecentGames(client *dotago.Client) {
+	for _, player := range playerArray {
+		mostRecentGame := getMostRecentGame(player.ID, client)
+		gameEndTime := time.Unix(int64(mostRecentGame.EndTime), 0)
+		_, ok := latestGameTimeMap[player.ID]
+		mostRecentGameString := parsedMostRecentGame(mostRecentGame)
+		println(mostRecentGameString)
+		if !ok {
+			latestGameTimeMap[player.ID] = gameEndTime
+			continue
+		}
+		// mostRecentGameString := parsedMostRecentGame(mostRecentGame)
+		// println(mostRecentGameString)
+	}
+}
+
 func main() {
 	println("RUNNING")
 	godotenv.Load()
@@ -154,5 +218,6 @@ func main() {
 
 	var key = os.Getenv("DOTA_KEY")
 	client := dotago.New(key)
-	getAllPlayerStatsForWeek(client)
+	// getAllPlayerStatsForWeek(client)
+	pollForMostRecentGames(client)
 }
