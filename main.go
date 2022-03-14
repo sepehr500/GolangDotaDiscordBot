@@ -10,9 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
 	dotago "github.com/sepehr500/dota-go/dota"
 )
+
+const CHANNEL_ID = "801267428830085144"
 
 var EmojiDictionary = map[string]string{
 	"WIN":      "✅",
@@ -136,7 +139,7 @@ func getWeekGameSummery(accountId int, client *dotago.Client) GameSummaryResult 
 	}
 }
 
-func getAllPlayerStatsForWeek(client *dotago.Client) {
+func getAllPlayerStatsForWeek(client *dotago.Client) string {
 	summaries := []GameSummaryResult{}
 	for _, player := range playerArray {
 		summaries = append(summaries, getWeekGameSummery(player.ID, client))
@@ -156,7 +159,7 @@ func getAllPlayerStatsForWeek(client *dotago.Client) {
 		message = message + fmt.Sprintf("%d. %s (%d games) - %d%%\n", i+1, name, summary.TotalGames, summary.WinRate)
 
 	}
-	println(message)
+	return message
 }
 
 func getMostRecentGame(accountId int, client *dotago.Client) GetMatchData {
@@ -192,7 +195,7 @@ func parsedMostRecentGame(matchData GetMatchData) string {
 	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists.", feedMessage, wonEmoji, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists)
 }
 
-func pollForMostRecentGames(client *dotago.Client) {
+func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
 	for {
 		log.Println("Polling for most recent games")
 		for _, player := range playerArray {
@@ -207,26 +210,43 @@ func pollForMostRecentGames(client *dotago.Client) {
 			if gameEndTime.After(latestGameTime) {
 				latestGameTimeMap[player.ID] = gameEndTime
 				mostRecentGameString := parsedMostRecentGame(mostRecentGame)
-				println(mostRecentGameString)
-
+				discord.ChannelMessage(CHANNEL_ID, mostRecentGameString)
+				log.Println("Sent message:", mostRecentGameString)
 			}
 		}
 		time.Sleep(time.Minute)
 	}
 }
 
+func messageCreate(client *dotago.Client) func(s *discordgo.Session, m *discordgo.MessageCreate) {
+	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		if m.Author.ID == s.State.User.ID {
+			return
+		}
+		if m.Content == "!weekly-summary" {
+			message := getAllPlayerStatsForWeek(client)
+			println("MESSAGE", message)
+			s.ChannelMessageSend(CHANNEL_ID, message)
+		}
+	}
+}
+
 func main() {
 	println("RUNNING")
 	godotenv.Load()
+	var key = os.Getenv("DOTA_KEY")
+	client := dotago.New(key)
+
+	discord, _ := discordgo.New("Bot " + os.Getenv("DISCORD_KEY"))
+	discord.AddHandler(messageCreate(client))
+	discord.Open()
+	defer discord.Close()
 
 	jsonFile, _ := os.Open("herodata.json")
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	json.Unmarshal(byteValue, &heroData)
 	defer jsonFile.Close()
 
-	var key = os.Getenv("DOTA_KEY")
-	client := dotago.New(key)
-	// getAllPlayerStatsForWeek(client)
-	go pollForMostRecentGames(client)
+	go pollForMostRecentGames(client, discord)
 	select {}
 }
