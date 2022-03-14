@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -192,18 +193,25 @@ func parsedMostRecentGame(matchData GetMatchData) string {
 }
 
 func pollForMostRecentGames(client *dotago.Client) {
-	for _, player := range playerArray {
-		mostRecentGame := getMostRecentGame(player.ID, client)
-		gameEndTime := time.Unix(int64(mostRecentGame.EndTime), 0)
-		_, ok := latestGameTimeMap[player.ID]
-		mostRecentGameString := parsedMostRecentGame(mostRecentGame)
-		println(mostRecentGameString)
-		if !ok {
-			latestGameTimeMap[player.ID] = gameEndTime
-			continue
+	for {
+		log.Println("Polling for most recent games")
+		for _, player := range playerArray {
+			mostRecentGame := getMostRecentGame(player.ID, client)
+			gameEndTime := time.Unix(int64(mostRecentGame.EndTime), 0)
+			latestGameTime, ok := latestGameTimeMap[player.ID]
+			println(latestGameTime.String(), player.Name)
+			if !ok {
+				latestGameTimeMap[player.ID] = gameEndTime
+				continue
+			}
+			if gameEndTime.After(latestGameTime) {
+				latestGameTimeMap[player.ID] = gameEndTime
+				mostRecentGameString := parsedMostRecentGame(mostRecentGame)
+				println(mostRecentGameString)
+
+			}
 		}
-		// mostRecentGameString := parsedMostRecentGame(mostRecentGame)
-		// println(mostRecentGameString)
+		time.Sleep(time.Minute)
 	}
 }
 
@@ -219,5 +227,6 @@ func main() {
 	var key = os.Getenv("DOTA_KEY")
 	client := dotago.New(key)
 	// getAllPlayerStatsForWeek(client)
-	pollForMostRecentGames(client)
+	go pollForMostRecentGames(client)
+	select {}
 }
