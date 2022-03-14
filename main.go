@@ -172,12 +172,18 @@ func getAllPlayerStatsForWeek(client *dotago.Client) string {
 	return message
 }
 
-func getMostRecentGame(accountId int, client *dotago.Client) GetMatchData {
-	matchHistory, _ := client.GetMatchHistory(&dotago.MatchHistoryParams{AccountID: accountId})
+func getMostRecentGame(accountId int, client *dotago.Client) (GetMatchData, error) {
+	matchHistory, err := client.GetMatchHistory(&dotago.MatchHistoryParams{AccountID: accountId})
+	if err != nil {
+		return GetMatchData{}, err
+	}
 	match := matchHistory.Result.Matches[0]
-	matchData, _ := client.GetMatchDetails(&dotago.MatchDetailsParams{MatchID: match.MatchID})
+	matchData, err := client.GetMatchDetails(&dotago.MatchDetailsParams{MatchID: match.MatchID})
+	if err != nil {
+		return GetMatchData{}, err
+	}
 	matchSummary := getMatchData(matchData, accountId)
-	return matchSummary
+	return matchSummary, nil
 }
 
 func parsedMostRecentGame(matchData GetMatchData) string {
@@ -210,7 +216,11 @@ func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
 	for {
 		log.Println("Polling for most recent games")
 		for _, player := range playerArray {
-			mostRecentGame := getMostRecentGame(player.ID, client)
+			mostRecentGame, err := getMostRecentGame(player.ID, client)
+			if err != nil {
+				log.Println("ERROR")
+				continue
+			}
 			gameEndTime := time.Unix(int64(mostRecentGame.EndTime), 0)
 			latestGameTime, ok := latestGameTimeMap[player.ID]
 			if !ok {
