@@ -32,29 +32,44 @@ var latestGameTimeMap = map[int]time.Time{}
 // Convert to map?
 var playerArray = []dotago.PlayerData{
 	{
-		ID:   83516914,
-		Name: "XANNY",
+		ID:        83516914,
+		Name:      "XANNY",
+		DiscordID: "187064935778353152",
 	},
 	{
-		ID:   106795090,
-		Name: "zanerang",
+		ID:        106795090,
+		Name:      "zanerang",
+		DiscordID: "528816651878006804",
 	},
 	{
-		ID:   253318253,
-		Name: "phil",
+		ID:        253318253,
+		Name:      "phil",
+		DiscordID: "653827139975774250",
 	},
 	{
-		ID:   41051979,
-		Name: "DependencyInjection",
+		ID:        41051979,
+		Name:      "DependencyInjection",
+		DiscordID: "144314191031959552",
 	},
 	{
-		ID:   41121344,
-		Name: "Shyan",
+		ID:        41121344,
+		Name:      "Shyan",
+		DiscordID: "151044380726263809",
 	},
 	{
-		ID:   114907302,
-		Name: "YahBoyChoi",
+		ID:        114907302,
+		Name:      "YahBoyChoi",
+		DiscordID: "214909951317901314",
 	},
+}
+
+func findPlayerByDiscordId(discordID string) (dotago.PlayerData, error) {
+	for _, player := range playerArray {
+		if player.DiscordID == discordID {
+			return player, nil
+		}
+	}
+	return dotago.PlayerData{}, errors.New("error: player not found")
 }
 
 var heroData dotago.HeroData
@@ -190,7 +205,7 @@ func getMostRecentGame(accountId int, client *dotago.Client) (GetMatchData, erro
 	return matchSummary, nil
 }
 
-func parsedMostRecentGame(matchData GetMatchData) string {
+func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 	feedMessage := ""
 	wonEmoji := ""
 	wonString := ""
@@ -213,6 +228,9 @@ func parsedMostRecentGame(matchData GetMatchData) string {
 		wonString = "lost"
 	}
 	dotaWebsiteLink := fmt.Sprintf("https://www.opendota.com/matches/%d", matchData.GameID)
+	if !enableLink {
+		dotaWebsiteLink = ""
+	}
 	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists.\n%s", feedMessage, wonEmoji, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists, dotaWebsiteLink)
 }
 
@@ -233,7 +251,7 @@ func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
 			}
 			if gameEndTime.After(latestGameTime) {
 				latestGameTimeMap[player.ID] = gameEndTime
-				mostRecentGameString := parsedMostRecentGame(mostRecentGame)
+				mostRecentGameString := parsedMostRecentGame(mostRecentGame, true)
 				discord.ChannelMessageSend(CHANNEL_ID, mostRecentGameString)
 				log.Println("Sent message:", mostRecentGameString)
 			}
@@ -261,6 +279,28 @@ func messageCreate(client *dotago.Client) func(s *discordgo.Session, m *discordg
 		if m.Content == "!weekly-summary" {
 			message := getAllPlayerStatsForWeek(client)
 			println("MESSAGE", message)
+			s.ChannelMessageSend(CHANNEL_ID, message)
+		}
+		if m.Content == "!my-week-games" {
+			player, err := findPlayerByDiscordId(m.Author.ID)
+			if err != nil {
+				log.Println("PLAYER NOT FOUND")
+				s.ChannelMessageSend(CHANNEL_ID, "Player not found.")
+				return
+			}
+			matchHistory, _ := client.GetMatchHistory(&dotago.MatchHistoryParams{AccountID: player.ID})
+			sunday := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Now().Location()).AddDate(0, 0, -1*int(time.Now().Weekday()))
+			thisWeeksMatches := []dotago.MatchHistory{}
+			for _, match := range matchHistory.Result.Matches {
+				if time.Unix(int64(match.StartTime), 0).After(sunday) {
+					thisWeeksMatches = append(thisWeeksMatches, match)
+				}
+			}
+			message := "This week's games:\n"
+			for _, match := range thisWeeksMatches {
+				matchData, _ := client.GetMatchDetails(&dotago.MatchDetailsParams{MatchID: match.MatchID})
+				message = message + parsedMostRecentGame(getMatchData(matchData, player.ID), false)
+			}
 			s.ChannelMessageSend(CHANNEL_ID, message)
 		}
 	}

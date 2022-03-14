@@ -126,6 +126,7 @@ type HeroData map[string]struct {
 	Name string
 }
 type PlayerData struct {
-	Name string
-	ID   int
+	Name      string
+	ID        int
+	DiscordID string
 }
