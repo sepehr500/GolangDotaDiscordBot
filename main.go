@@ -63,6 +63,7 @@ func debugPrint(str interface{}) {
 }
 
 type GetMatchData struct {
+	GameID          int64
 	AccountID       int
 	CleanHeroName   string
 	IsRadiantWin    bool
@@ -98,6 +99,7 @@ func getMatchData(matchData *dotago.MatchDetailsResult, accountId int) GetMatchD
 		EndTime:         endTime,
 		IsWinner:        isPlayerRadiant == isRadiantWin,
 		AccountID:       accountId,
+		GameID:          matchData.Result.MatchID,
 	}
 }
 
@@ -200,7 +202,8 @@ func parsedMostRecentGame(matchData GetMatchData) string {
 		wonEmoji = EmojiDictionary["LOSS"]
 		wonString = "lost"
 	}
-	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists.", feedMessage, wonEmoji, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists)
+	dotaWebsiteLink := fmt.Sprintf("https://www.opendota.com/matches/%d", matchData.GameID)
+	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists.\n%s", feedMessage, wonEmoji, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists, dotaWebsiteLink)
 }
 
 func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
