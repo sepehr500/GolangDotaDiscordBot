@@ -202,7 +202,6 @@ func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
 			mostRecentGame := getMostRecentGame(player.ID, client)
 			gameEndTime := time.Unix(int64(mostRecentGame.EndTime), 0)
 			latestGameTime, ok := latestGameTimeMap[player.ID]
-			println(latestGameTime.String(), player.Name)
 			if !ok {
 				latestGameTimeMap[player.ID] = gameEndTime
 				continue
@@ -215,6 +214,17 @@ func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
 			}
 		}
 		time.Sleep(time.Minute)
+	}
+}
+
+func weeklySummaryPolling(client *dotago.Client, discord *discordgo.Session) {
+	time.Sleep(time.Hour * 12)
+	for {
+		log.Println("Polling for weekly summary")
+		message := getAllPlayerStatsForWeek(client)
+		discord.ChannelMessageSend(CHANNEL_ID, message)
+		log.Println("Sent message:", message)
+		time.Sleep(time.Hour * 12)
 	}
 }
 
@@ -248,5 +258,6 @@ func main() {
 	defer jsonFile.Close()
 
 	go pollForMostRecentGames(client, discord)
+	go weeklySummaryPolling(client, discord)
 	select {}
 }
