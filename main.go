@@ -210,7 +210,7 @@ func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
 			if gameEndTime.After(latestGameTime) {
 				latestGameTimeMap[player.ID] = gameEndTime
 				mostRecentGameString := parsedMostRecentGame(mostRecentGame)
-				discord.ChannelMessage(CHANNEL_ID, mostRecentGameString)
+				discord.ChannelMessageSend(CHANNEL_ID, mostRecentGameString)
 				log.Println("Sent message:", mostRecentGameString)
 			}
 		}
