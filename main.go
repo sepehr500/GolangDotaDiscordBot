@@ -50,6 +50,10 @@ var playerArray = []dotago.PlayerData{
 		ID:   41121344,
 		Name: "Shyan",
 	},
+	{
+		ID:   114907302,
+		Name: "YahBoyChoi",
+	},
 }
 
 var heroData dotago.HeroData
@@ -116,9 +120,12 @@ func getWeekGameSummery(accountId int, client *dotago.Client) GameSummaryResult 
 	}
 	totalWins := 0
 	totalLosses := 0
-	totalGames := len(thisWeeksMatches)
 	for _, match := range thisWeeksMatches {
 		matchData, _ := client.GetMatchDetails(&dotago.MatchDetailsParams{MatchID: match.MatchID})
+		// 7 is ranked
+		if matchData.Result.LobbyType != 7 {
+			continue
+		}
 		matchSummary := getMatchData(matchData, accountId)
 		if matchData.Result.RadiantWin == matchSummary.IsPlayerRadiant {
 			totalWins += 1
@@ -126,6 +133,7 @@ func getWeekGameSummery(accountId int, client *dotago.Client) GameSummaryResult 
 			totalLosses += 1
 		}
 	}
+	totalGames := totalWins + totalLosses
 	winRate := int((float64(totalWins) / float64(totalGames)) * 100)
 	if totalGames == 0 {
 		winRate = 0
