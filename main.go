@@ -61,6 +61,11 @@ var playerArray = []dotago.PlayerData{
 		Name:      "YahBoyChoi",
 		DiscordID: "214909951317901314",
 	},
+	{
+		ID:        81812745,
+		Name:      "Bobdriving",
+		DiscordID: "188791660728156161",
+	},
 }
 
 func findPlayerByDiscordId(discordID string) (dotago.PlayerData, error) {
@@ -216,7 +221,7 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 			break
 		}
 	}
-	if !matchData.IsWinner && matchData.Deaths > matchData.Kills+2 {
+	if matchData.Deaths > matchData.Kills+2 {
 		feedMessage = EmojiDictionary["ALERT"] + " FEED ALERT " + EmojiDictionary["ALERT"]
 	}
 	if matchData.IsWinner {
@@ -231,7 +236,7 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 	if !enableLink {
 		dotaWebsiteLink = ""
 	}
-	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists.\n%s", feedMessage, wonEmoji, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists, dotaWebsiteLink)
+	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists.\n%s", wonEmoji, feedMessage, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists, dotaWebsiteLink)
 }
 
 func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
