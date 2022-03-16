@@ -195,11 +195,11 @@ func getAllPlayerStatsForWeek(client *dotago.Client) string {
 
 func getMostRecentGame(accountId int, client *dotago.Client) (GetMatchData, error) {
 	matchHistory, err := client.GetMatchHistory(&dotago.MatchHistoryParams{AccountID: accountId})
-	if len(matchHistory.Result.Matches) == 0 {
-		return GetMatchData{}, errors.New("error: no matches found")
-	}
 	if err != nil {
 		return GetMatchData{}, err
+	}
+	if len(matchHistory.Result.Matches) == 0 {
+		return GetMatchData{}, errors.New("error: no matches found")
 	}
 	match := matchHistory.Result.Matches[0]
 	matchData, err := client.GetMatchDetails(&dotago.MatchDetailsParams{MatchID: match.MatchID})
