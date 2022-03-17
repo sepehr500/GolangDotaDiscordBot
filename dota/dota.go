@@ -35,12 +35,12 @@ func (c *Client) GetMatchHistory(params *MatchHistoryParams) (*MatchHistoryResul
 	matchHistory := &MatchHistoryResult{}
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, readErr
+		return matchHistory, readErr
 	}
 
 	err := json.Unmarshal(body, matchHistory)
 	if err != nil {
-		return nil, err
+		return matchHistory, err
 	}
 	return matchHistory, nil
 }
