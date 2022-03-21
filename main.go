@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -146,6 +147,21 @@ type GameSummaryResult struct {
 	AccountID   int
 }
 
+func getGiphy(searchTerm string) (string, error) {
+	resp, _ := http.Get(fmt.Sprintf("https://api.giphy.com/v1/gifs/random?api_key=%s&tag=%s", os.Getenv("GIPHY_API_KEY"), searchTerm))
+	body, readErr := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if readErr != nil {
+		return "", readErr
+	}
+	giphy := &dotago.GiphyRandomSearch{}
+	err := json.Unmarshal(body, giphy)
+	if err != nil {
+		return "", err
+	}
+	return giphy.Data.EmbedURL, nil
+}
+
 func getWeekGameSummery(accountId int, client *dotago.Client) GameSummaryResult {
 	matchHistory, _ := client.GetMatchHistory(&dotago.MatchHistoryParams{AccountID: accountId})
 	sunday := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Now().Location()).AddDate(0, 0, -1*int(time.Now().Weekday()))
@@ -230,6 +246,7 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 	wonString := ""
 	userName := ""
 	stompText := ""
+	giphyURL := ""
 	for _, player := range playerArray {
 		if player.ID == matchData.AccountID {
 			userName = player.Name
@@ -237,6 +254,10 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 		}
 	}
 	if !matchData.IsWinner && matchData.Deaths > matchData.Kills+10 {
+		url, _ := getGiphy("feed")
+		if !enableLink {
+			giphyURL = url
+		}
 		feedMessage = EmojiDictionary["ALERT"] + " FEED ALERT " + EmojiDictionary["ALERT"]
 	}
 	if matchData.IsWinner {
@@ -254,7 +275,7 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 	if !enableLink {
 		dotaWebsiteLink = ""
 	}
-	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists. %s \n%s", wonEmoji, feedMessage, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists, stompText, dotaWebsiteLink)
+	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists. %s %s \n%s", wonEmoji, feedMessage, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists, stompText, giphyURL, dotaWebsiteLink)
 }
 
 func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
