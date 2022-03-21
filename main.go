@@ -269,6 +269,10 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 		wonString = "lost"
 	}
 	if !matchData.IsWinner && matchData.EnemyKills > matchData.AllyKills*3 {
+		url, _ := getGiphy("very bad")
+		if !enableLink {
+			giphyURL = url
+		}
 		stompText = "GAME WAS A STOMP"
 	}
 	dotaWebsiteLink := fmt.Sprintf("https://www.opendota.com/matches/%d", matchData.GameID)
