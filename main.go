@@ -94,6 +94,8 @@ type GetMatchData struct {
 	Assists         int
 	EndTime         int
 	IsWinner        bool
+	AllyKills       int
+	EnemyKills      int
 }
 
 func getMatchData(matchData *dotago.MatchDetailsResult, accountId int) GetMatchData {
@@ -110,6 +112,16 @@ func getMatchData(matchData *dotago.MatchDetailsResult, accountId int) GetMatchD
 	isRadiantWin := matchData.Result.RadiantWin
 	isPlayerRadiant := currentPlayer.PlayerSlot < 128
 	cleanHeroName := strings.Title(strings.Split(heroData[fmt.Sprint(currentPlayer.HeroID)].Name, "npc_dota_hero_")[1])
+	totalEnemyKills := 0
+	totalAllyKills := 0
+	if isPlayerRadiant {
+		totalAllyKills = matchData.Result.RadiantScore
+		totalEnemyKills = matchData.Result.DireScore
+	}
+	if !isPlayerRadiant {
+		totalAllyKills = matchData.Result.DireScore
+		totalEnemyKills = matchData.Result.RadiantScore
+	}
 	return GetMatchData{
 		CleanHeroName:   cleanHeroName,
 		IsRadiantWin:    isRadiantWin,
@@ -121,6 +133,8 @@ func getMatchData(matchData *dotago.MatchDetailsResult, accountId int) GetMatchD
 		IsWinner:        isPlayerRadiant == isRadiantWin,
 		AccountID:       accountId,
 		GameID:          matchData.Result.MatchID,
+		AllyKills:       totalAllyKills,
+		EnemyKills:      totalEnemyKills,
 	}
 }
 
@@ -215,13 +229,14 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 	wonEmoji := ""
 	wonString := ""
 	userName := ""
+	stompText := ""
 	for _, player := range playerArray {
 		if player.ID == matchData.AccountID {
 			userName = player.Name
 			break
 		}
 	}
-	if matchData.Deaths > matchData.Kills+2 {
+	if !matchData.IsWinner && matchData.Deaths > matchData.Kills+10 {
 		feedMessage = EmojiDictionary["ALERT"] + " FEED ALERT " + EmojiDictionary["ALERT"]
 	}
 	if matchData.IsWinner {
@@ -232,11 +247,14 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 		wonEmoji = EmojiDictionary["LOSS"]
 		wonString = "lost"
 	}
+	if !matchData.IsWinner && matchData.EnemyKills > matchData.AllyKills*3 {
+		stompText = "GAME WAS A STOMP"
+	}
 	dotaWebsiteLink := fmt.Sprintf("https://www.opendota.com/matches/%d", matchData.GameID)
 	if !enableLink {
 		dotaWebsiteLink = ""
 	}
-	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists.\n%s", wonEmoji, feedMessage, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists, dotaWebsiteLink)
+	return fmt.Sprintf("%s %s %s %s has %s with %d kills, %d deaths and %d assists. %s \n%s", wonEmoji, feedMessage, userName, matchData.CleanHeroName, wonString, matchData.Kills, matchData.Deaths, matchData.Assists, stompText, dotaWebsiteLink)
 }
 
 func pollForMostRecentGames(client *dotago.Client, discord *discordgo.Session) {
