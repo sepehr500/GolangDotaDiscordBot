@@ -62,11 +62,12 @@ var playerArray = []dotago.PlayerData{
 		Name:      "YahBoyChoi",
 		DiscordID: "214909951317901314",
 	},
-	{
-		ID:        81812745,
-		Name:      "Bobdriving",
-		DiscordID: "188791660728156161",
-	},
+	// INACTIVE
+	// {
+	// 	ID:        81812745,
+	// 	Name:      "Bobdriving",
+	// 	DiscordID: "188791660728156161",
+	// },
 }
 
 func findPlayerByDiscordId(discordID string) (dotago.PlayerData, error) {
