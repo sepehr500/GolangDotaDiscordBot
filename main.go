@@ -255,8 +255,8 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 		}
 	}
 	if !matchData.IsWinner && matchData.Deaths > matchData.Kills+6 {
-		url, _ := getGiphy("feed")
-		if !enableLink {
+		url, _ := getGiphy("stinky")
+		if enableLink {
 			giphyURL = url
 		}
 		feedMessage = EmojiDictionary["ALERT"] + " FEED ALERT " + EmojiDictionary["ALERT"]
@@ -270,8 +270,8 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 		wonString = "lost"
 	}
 	if !matchData.IsWinner && float64(matchData.EnemyKills) > float64(matchData.AllyKills)*1.5 {
-		url, _ := getGiphy("very bad")
-		if !enableLink {
+		url, _ := getGiphy("terrible")
+		if enableLink {
 			giphyURL = url
 		}
 		stompText = "GAME WAS A STOMP"
