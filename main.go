@@ -254,7 +254,7 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 			break
 		}
 	}
-	if !matchData.IsWinner && matchData.Deaths > matchData.Kills+10 {
+	if !matchData.IsWinner && matchData.Deaths > matchData.Kills+6 {
 		url, _ := getGiphy("feed")
 		if !enableLink {
 			giphyURL = url
@@ -269,7 +269,7 @@ func parsedMostRecentGame(matchData GetMatchData, enableLink bool) string {
 		wonEmoji = EmojiDictionary["LOSS"]
 		wonString = "lost"
 	}
-	if !matchData.IsWinner && matchData.EnemyKills > matchData.AllyKills*3 {
+	if !matchData.IsWinner && float64(matchData.EnemyKills) > float64(matchData.AllyKills)*1.5 {
 		url, _ := getGiphy("very bad")
 		if !enableLink {
 			giphyURL = url
